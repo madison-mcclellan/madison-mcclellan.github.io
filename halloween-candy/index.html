@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.1/noframework.waypoints.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div id="graphic">
+
+    <div class="container">
+      <div id="div1">
+        <h2>FiveThirtyEight conducted a survey of <strong>85</strong> types of Halloween candy.</h2>
+      </div>
+      <div id="div2">
+        <h2>Out of the <strong>85</strong> types of candy, <strong>38</strong> were fruity...</h2>
+        <p></p>
+      </div>
+      <div id="div3">
+        <h2>and <strong>37</strong> were chocolate.</h2>
+      </div>
+      <div id="div4">
+        <h2>Out of the <strong>37</strong> chocolate candies, <strong>10</strong> had caramel.</h2>
+      </div>
+      <div id="div5">
+        <h2>The caramel candies tend to be highly rated.</h2>
+      </div>
+    </div>
+
+    <!-- svg -->
+    <div class="fixed"><svg id="viz" width="100%" height="100%"></svg></div>
+  
+  </div><!-- /graphic -->
+  
+  <script>
+    // declare variables
+    let candy; 
+
+    // set up svg
+    let svg = d3.select("svg");
+
+    let width = 500, height = 800; 
+
+    svg.attr("width", width)
+      .attr("height", height);
+
+    // set up grid spacing
+    let spacing = 40;
+    let rows = 10;
+    let columns = 10;
+    let randnum = (min, max) => Math.round(Math.random() * (max - min) + min);
+
+    // load data from csv then do stuff with the data
+    d3.csv("./candy-data.csv").then(function(data) {
+      // create group and join our data to that group
+      let group = svg.selectAll("g")
+        .data(data)
+        .enter()
+        .append("g");
+
+      // create rectangles
+      let rects = group.append("rect");
+
+      // create square grid
+      let grid = () => {
+        rects
+          .transition()
+          .delay((d, i) => 10 * i)
+          .duration(600)
+          .attr("width", 20)
+          .attr("height", 20)
+          .attr("rx", 5)
+          .attr("ry", 5)
+          .attr("x", (d, i) => i % columns * spacing)
+          .attr("y", (d, i) => Math.floor(i / 10) % rows * spacing)
+          .attr("fill", "#394147")
+          .attr("opacity", "1")
+      };
+
+      // create second square grid to show which items were fruity
+      let grid2 = () => {
+        rects
+          .transition()
+          .delay((d, i) => 10 * i)
+          .duration(600)
+          .attr("width", 20)
+          .attr("height", 20)
+          .attr("rx", 5)
+          .attr("ry", 5)
+          .attr("x", (d, i) => i % columns * spacing)
+          .attr("y", (d, i) => Math.floor(i / 10) % rows * spacing)
+          .attr("fill", (d, i) => (d["fruity"] == "1" ? "#ed879f" : "#d4d4d4"))
+      };
+
+      // create third square grid to show which items were chocolate
+      let grid3 = () => {
+        rects
+          .transition()
+          .delay((d, i) => 10 * i)
+          .duration(600)
+          .attr("width", 20)
+          .attr("height", 20)
+          .attr("rx", 5)
+          .attr("ry", 5)
+          .attr("x", (d, i) => i % columns * spacing)
+          .attr("y", (d, i) => Math.floor(i / 10) % rows * spacing)
+          .attr("fill", (d, i) => (d["chocolate"] == "1" ? "#4f3e38" : "#d4d4d4"))
+      };
+
+      // divide by caramel vs. no caramel
+      let divide = () => {
+        rects
+          .transition()
+          .delay((d, i) => 10 * i)
+          .duration(600)
+          .attr("width", 15)
+          .attr("height", 15)
+          .attr("rx", 20)
+          .attr("ry", 20)
+          .attr("x", (d, i) => d["caramel"] == 1 ? randnum(100, 150) : randnum(300, 350))
+          .attr("y", (d, i) => i * 5)
+          .attr("fill", (d, i) => d["caramel"] == 1 ? "#ba8229" : "#4f3e38")
+          .attr("opacity", (d, i) => d["chocolate"] == "1" ? 0.75 : 0) // only show chocolate candy
+      };
+
+      // show popularity of caramel vs. no caramel
+      let divide2 = () => {
+        rects
+          .transition()
+          .delay((d, i) => 10 * i)
+          .duration(600)
+          .attr("width", (d, i) => d["winpercent"] / 2)
+          .attr("height", (d, i) => d["winpercent"] / 2)
+          .attr("rx", 100)
+          .attr("ry", 100)
+          .attr("x", (d, i) => d["caramel"] == 1 ? randnum(100, 150) : randnum(300, 350))
+          .attr("y", (d, i) => 1150 - (d["winpercent"] * 10))
+          .attr("fill", (d, i) => d["caramel"] == 1 ? "#ba8229" : "#4f3e38")
+          .attr("transform", "translate(0, -300) rotate(0)")
+          .attr("opacity", (d, i) => d["chocolate"] == "1" ? 0.75 : 0) // only show chocolate candy
+      };
+
+      // waypoints scroll constructor
+      function scroll(n, offset, func1, func2) {
+        return new Waypoint({
+          element: document.getElementById(n),
+          handler: function(direction) {
+            direction == "down" ? func1() : func2();
+          },
+          offset: offset
+        });
+      };
+
+      // triger these functions on page scroll
+      new scroll("div2", "75%", grid2, grid);
+      new scroll("div3", "75%", grid3, grid);
+      new scroll("div4", "75%", divide, grid);
+      new scroll("div5", "75%", divide2, grid);
+
+      // start grid on page load
+      grid();
+    });
+  </script>
+</body>
+</html>
